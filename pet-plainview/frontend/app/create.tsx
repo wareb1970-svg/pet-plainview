@@ -70,6 +70,24 @@ export default function Create() {
     return res.granted;
   }
 
+
+  async function toWebSafeUri(uri: string, mimeType?: string | null, fileName?: string | null): Promise<string> {
+    // iPhone photos are often HEIC, which desktop browsers can't decode.
+    // On web, convert HEIC/HEIF to JPEG before processing.
+    if (Platform.OS !== "web") return uri;
+    const hint = `${mimeType || ""} ${fileName || ""} ${uri}`.toLowerCase();
+    if (!/heic|heif/.test(hint)) return uri;
+    try {
+      const heic2any = (await import("heic2any")).default as any;
+      const blob = await (await fetch(uri)).blob();
+      const out = await heic2any({ blob, toType: "image/jpeg", quality: 0.9 });
+      const jpeg = Array.isArray(out) ? out[0] : out;
+      return URL.createObjectURL(jpeg as Blob);
+    } catch {
+      throw new Error("This photo is in HEIC format and couldn't be converted. Please use a JPG or PNG.");
+    }
+  }
+
   async function processPicked(uri: string) {
     // Downscale so base64 is small enough for JSON POSTs
     const manip = await ImageManipulator.manipulateAsync(
@@ -93,7 +111,8 @@ export default function Create() {
     });
     if (r.canceled || !r.assets[0]) return;
     try {
-      await processPicked(r.assets[0].uri);
+      const a = r.assets[0];
+      await processPicked(await toWebSafeUri(a.uri, (a as any).mimeType, (a as any).fileName));
     } catch (e) {
       setError((e as Error).message);
     }
@@ -111,7 +130,8 @@ export default function Create() {
     const r = await ImagePicker.launchCameraAsync({ quality: 0.9 });
     if (r.canceled || !r.assets[0]) return;
     try {
-      await processPicked(r.assets[0].uri);
+      const a = r.assets[0];
+      await processPicked(await toWebSafeUri(a.uri, (a as any).mimeType, (a as any).fileName));
     } catch (e) {
       setError((e as Error).message);
     }
