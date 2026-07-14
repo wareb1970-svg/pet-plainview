@@ -103,7 +103,7 @@ export default function Paywall() {
 
           <Pressable testID="buy-pack" disabled={busy} onPress={() => upgrade("pack")} style={styles.packBtn}>
             <Ionicons name="cube-outline" size={18} color="#fff" />
-            <Text style={styles.packText}>Or buy a Content Pack — ${prices.pack.toFixed(2)}</Text>
+            <Text style={styles.packText}>Or get 20 generations — ${prices.pack.toFixed(2)}</Text>
           </Pressable>
 
           {error && (
@@ -112,7 +112,7 @@ export default function Paywall() {
             </Text>
           )}
 
-          <Text style={styles.legal}>Test mode payments via Stripe. No real charges.</Text>
+          <Text style={styles.legal}>Secure payments processed by Stripe.</Text>
         </ScrollView>
       </SafeAreaView>
     </View>
