@@ -142,7 +142,7 @@ export default function Create() {
       setError("Please upload or take a pet photo first.");
       return;
     }
-    if (!user?.is_premium && (user?.daily_used ?? 0) >= (user?.daily_limit ?? 3)) {
+    if (!user?.is_premium && (user?.daily_used ?? 0) >= (user?.daily_limit ?? 3) && (user?.pack_credits ?? 0) <= 0) {
       router.push("/paywall");
       return;
     }
