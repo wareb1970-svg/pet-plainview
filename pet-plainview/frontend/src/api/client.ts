@@ -44,6 +44,7 @@ export type MeUser = {
   is_admin: boolean;
   daily_used: number;
   daily_limit: number;
+  pack_credits?: number;
 };
 
 export type Transformation = {
