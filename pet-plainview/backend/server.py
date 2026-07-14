@@ -407,7 +407,8 @@ async def _generate_copy(category: dict, pet_name: Optional[str], image_b64: str
         }
         async with httpx.AsyncClient(timeout=60) as http:
             r = await http.post(
-                f"{GEMINI_BASE}/gemini-2.5-flash:generateContent",
+                
+            f"{GEMINI_BASE}/gemini-3.1-flash-lite:generateContent",
                 headers={"x-goog-api-key": GEMINI_API_KEY},
                 json=body,
             )
@@ -487,7 +488,7 @@ async def _generate_image(
         }
         async with httpx.AsyncClient(timeout=120) as http:
             r = await http.post(
-                f"{GEMINI_BASE}/gemini-2.5-flash-image:generateContent",
+                f"{GEMINI_BASE}/gemini-3.1-flash-lite-image:generateContent",
                 headers={"x-goog-api-key": GEMINI_API_KEY},
                 json=body,
             )
