@@ -268,6 +268,7 @@ def user_view(user: dict, used: int, limit: int) -> dict:
         "is_admin": bool(user.get("is_admin", False)),
         "daily_used": used,
         "daily_limit": limit,
+        "pack_credits": int(user.get("pack_credits", 0)),
     }
 
 
