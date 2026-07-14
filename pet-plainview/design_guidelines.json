@@ -1,0 +1,144 @@
+{
+  "theme": "Premium Apple-Quality Mobile Web App",
+  "emotional_tone": "Playful yet elegant, magical, premium consumer iOS aesthetic",
+  "typography": {
+    "primary_font": "Outfit, sans-serif",
+    "primary_font_weight_rules": "Use font-semibold for H1-H3, font-medium for buttons.",
+    "secondary_font": "Plus Jakarta Sans, sans-serif",
+    "hierarchy": {
+      "H1": "text-4xl md:text-5xl tracking-tight leading-tight",
+      "H2": "text-2xl md:text-3xl tracking-tight leading-snug",
+      "H3": "text-xl md:text-2xl tracking-tight",
+      "H4": "text-lg md:text-xl font-medium",
+      "Body": "text-base leading-relaxed",
+      "Small": "text-sm text-muted-foreground",
+      "Overline": "text-xs font-bold uppercase tracking-wider text-muted-foreground"
+    },
+    "forbidden_fonts": ["Inter", "Roboto", "Open Sans", "Lato"]
+  },
+  "colors": {
+    "light": {
+      "background": "#F2F2F7",
+      "surface": "#FFFFFF",
+      "surface_elevated": "#FFFFFF",
+      "border": "#E5E5EA",
+      "text_primary": "#1C1C1E",
+      "text_secondary": "#8E8E93"
+    },
+    "dark": {
+      "background": "#000000",
+      "surface": "#1C1C1E",
+      "surface_elevated": "#2C2C2E",
+      "border": "#38383A",
+      "text_primary": "#FFFFFF",
+      "text_secondary": "#AEAEB2"
+    },
+    "accents": {
+      "primary": "#5E5CE6",
+      "primary_hover": "#4b49b8",
+      "magic_gradient": "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500",
+      "destructive": "#FF3B30",
+      "success": "#34C759",
+      "warning": "#FF9F0A"
+    }
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "light": "shadow-[0_8px_30px_rgb(0,0,0,0.08)]",
+      "dark": "shadow-[0_8px_30px_rgb(255,255,255,0.04)]"
+    },
+    "borders": "1px solid border-border",
+    "corner_radius": {
+      "cards": "rounded-3xl",
+      "buttons": "rounded-full",
+      "images": "rounded-2xl",
+      "inputs": "rounded-xl"
+    },
+    "glassmorphism": "backdrop-blur-2xl bg-white/70 dark:bg-black/60",
+    "forbidden": ["Full-screen heavy gradients without texture", "Transparent backgrounds over content"]
+  },
+  "component_styles": {
+    "buttons": {
+      "primary": "rounded-full bg-indigo-600 text-white font-medium px-6 py-3 transition-transform hover:scale-105 active:scale-95 shadow-md",
+      "magic": "rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-semibold px-6 py-3 transition-transform hover:scale-105 active:scale-95 shadow-lg",
+      "secondary": "rounded-full bg-white dark:bg-[#2C2C2E] text-[#1C1C1E] dark:text-white font-medium px-6 py-3 transition-transform hover:scale-105 active:scale-95 border border-gray-200 dark:border-gray-700"
+    },
+    "cards": {
+      "base": "rounded-3xl bg-white dark:bg-[#1C1C1E] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.08)] dark:shadow-none border border-transparent dark:border-[#38383A] overflow-hidden"
+    },
+    "inputs": "rounded-xl bg-gray-100 dark:bg-[#2C2C2E] border-none px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all",
+    "navigation_bar": "fixed bottom-0 w-full h-20 backdrop-blur-2xl bg-white/80 dark:bg-black/80 border-t border-gray-200 dark:border-gray-800 flex justify-around items-center pb-4 z-50",
+    "header": "sticky top-0 w-full backdrop-blur-2xl bg-white/80 dark:bg-black/80 z-40 px-4 py-3 flex justify-between items-center"
+  },
+  "grids_and_layouts": {
+    "mobile_first": true,
+    "app_container": "max-w-md mx-auto min-h-screen bg-[#F2F2F7] dark:bg-black relative pb-24 shadow-2xl overflow-x-hidden",
+    "spacing": "Use p-4 or p-6 for screen edges. Use gap-4 or gap-6 for lists and grids.",
+    "bento_grid": "For the gallery/history tab, use a masonry or tight 2-column grid (grid-cols-2 gap-3) with rounded-2xl items."
+  },
+  "motion_and_interactions": {
+    "page_transitions": "Slide up or fade-in using Framer Motion (initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}).",
+    "micro_interactions": "Scale down (scale: 0.95) on button tap/press. Scale up (scale: 1.05) on hover.",
+    "loading_state": "Do not use generic spinners. Use a pulsating magic gradient or a sequential glowing effect to indicate AI processing."
+  },
+  "accessibility": {
+    "contrast": "Ensure text contrast meets APCA/WCAG standards. Use pure white text on the magic gradient.",
+    "testing": "All interactive and key informational elements MUST include a data-testid attribute.",
+    "reduced_motion": "Respect prefers-reduced-motion media query for animations."
+  },
+  "key_screens": {
+    "onboarding": "Full-screen visually striking image. Large H1 text. Magical gradient 'Get Started' button at the bottom.",
+    "home_tab": "Sticky header with user avatar. 'Surprise Me' large hero card. Horizontal scrollable list for 'Featured Categories'. Vertical list for 'Recent Transformations'.",
+    "photo_upload": "Camera viewfinder simulation or large bordered dropzone (rounded-3xl). Input field for 'Pet Name' (optional).",
+    "category_picker": "Grid of 40+ themes. Each card has an icon/image and bold title. Grouped by sections (Fantasy, Occupations, Eras).",
+    "loading_screen": "Immersive. Dark background. Glowing orb or scanning animation over the pet's photo. 'Analyzing personality...' text.",
+    "results_carousel": "Swiper/Carousel of 5 unique transformations. Each slide is a full card with the portrait, creative name, occupation, and funny biography.",
+    "result_detail": "Large portrait taking upper 50% of screen. Content below in a bottom sheet style layout. Action row for: Regenerate, Edit, Favorite, Share.",
+    "share_template_picker": "Horizontal list of templates (Movie Poster, Polaroid, etc.). Live preview in the center.",
+    "paywall": "Premium layout. Dark mode by default for luxury feel. Golden or Magic gradient highlights. 'Unlimited HD, No Watermarks'.",
+    "admin_dashboard": "Desktop-optimized view. Sidebar navigation. Data tables with Shadcn UI."
+  },
+  "media": {
+    "image_urls": {
+      "onboarding_hero": {
+        "url": "https://images.unsplash.com/photo-1583513702411-9dade5d3cb12?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzZ8MHwxfHNlYXJjaHwxfHxmdW5ueSUyMGRvZyUyMGNvc3R1bWUlMjBwb3J0cmFpdHxlbnwwfHx8fDE3ODM5NTQ5ODV8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Cute white and brown small dog wearing a santa hat looking at camera, conveying fun and dressing up."
+      },
+      "category_thumbnail_1": {
+        "url": "https://images.unsplash.com/photo-1608096275263-1667980c4dc2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzZ8MHwxfHNlYXJjaHw0fHxmdW5ueSUyMGRvZyUyMGNvc3R1bWUlMjBwb3J0cmFpdHxlbnwwfHx8fDE3ODM5NTQ5ODV8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Dog in yellow turtleneck, good for 'Human/CEO' category reference."
+      },
+      "category_thumbnail_2": {
+        "url": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwxfHxjdXRlJTIwY2F0JTIwbG9va2luZyUyMGF0JTIwY2FtZXJhfGVufDB8fHx8MTc4Mzk1NDk4NXww&ixlib=rb-4.1.0&q=85",
+        "description": "Cute cat looking directly at camera, good for 'Surprise Me' or basic cat reference."
+      },
+      "magazine_template_bg": {
+        "url": "https://images.unsplash.com/photo-1724405095085-06d4246a2af8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHwyfHxwcmVtaXVtJTIwbWFnYXppbmUlMjBjb3ZlciUyMGxheW91dCUyMGRlc2lnbnxlbnwwfHx8fDE3ODM5NTUwMDZ8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Premium magazine cover layout reference for the 'Share Template' feature."
+      }
+    }
+  },
+  "instructions_to_main_agent": {
+    "framework": "React JS with Tailwind CSS, using Shadcn primitives heavily customized to look like a native iOS app.",
+    "layout_wrapper": "Use a mobile app constraint layout (e.g., max-w-md mx-auto) for the web app to feel like an iOS device screen if viewed on desktop. On actual mobile, it should take 100% width/height.",
+    "theming": "Implement a robust Dark/Light mode toggle defaulting to System. Use Tailwind's dark mode class strategy.",
+    "animations": "Use Framer Motion extensively for page transitions, sheet sliding (bottom-up), and micro-interactions on taps.",
+    "components": "Do NOT use standard web dropdowns or native inputs. Use custom styled elements or Shadcn dialogs/drawers to mimic iOS Bottom Sheets and pickers.",
+    "forms": "Inputs must be large (h-12 or h-14), rounded-xl, with subtle gray backgrounds and no aggressive borders. Use Apple-style placeholder text."
+  },
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Do not use dark colors as gradients.",
+    "Don't make generic centered layouts. Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur) for headers and bottom tab bars.",
+    "You MUST NOT apply universal transition (e.g., transition: all). Add transitions for specific properties.",
+    "You MUST NOT center align the app container text by default. Keep text left-aligned for readability.",
+    "Always use modern button styles like pill-shaped (rounded-full) with interaction animations.",
+    "NEVER use AI assistant Emoji characters like robot/brain/crystal ball for icons. Use clean Lucide or Phosphor icons.",
+    "Every interaction needs micro-animations - hover states, tap states, and entrance animations.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "All interactive and key informational elements MUST include a data-testid attribute for robust testing.",
+    "Use sonner for toast notifications (located in /app/src/components/ui/sonner.tsx).",
+    "Missing categories (especially sponsor logos/images) = main agent will use placeholder text which is FORBIDDEN. Always use provided image URLs."
+  ]
+}
