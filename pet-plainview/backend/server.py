@@ -273,6 +273,44 @@ def user_view(user: dict, used: int, limit: int) -> dict:
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
+PACK_CREDITS = 20          # generations granted per $4.99 pack
+FREE_IP_DAILY_CAP = 5      # free (unpaid) generations allowed per IP per day, across all accounts
+
+
+def normalize_email(email: str) -> str:
+    """Collapse alias tricks so one inbox = one account (brad+x@ == brad@; gmail dots ignored)."""
+    email = email.strip().lower()
+    if "@" not in email:
+        return email
+    local, domain = email.rsplit("@", 1)
+    local = local.split("+", 1)[0]
+    if domain in ("gmail.com", "googlemail.com"):
+        local = local.replace(".", "")
+        domain = "gmail.com"
+    return f"{local}@{domain}"
+
+
+def client_ip(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for", "")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+async def ip_free_usage(ip: str) -> int:
+    today = utcnow().strftime("%Y-%m-%d")
+    doc = await db.ip_usage.find_one({"ip": ip, "date": today}, {"_id": 0})
+    return int(doc.get("count", 0)) if doc else 0
+
+
+async def increment_ip_usage(ip: str) -> None:
+    today = utcnow().strftime("%Y-%m-%d")
+    await db.ip_usage.update_one(
+        {"ip": ip, "date": today},
+        {"$inc": {"count": 1}, "$set": {"updated_at": utcnow()}},
+        upsert=True,
+    )
+
 
 def _hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
@@ -303,7 +341,7 @@ async def _issue_session(user: dict) -> dict:
 
 @api.post("/auth/register")
 async def register(payload: RegisterIn) -> dict:
-    email = payload.email.strip().lower()
+    email = normalize_email(payload.email)
     if not EMAIL_RE.match(email):
         raise HTTPException(400, "Please enter a valid email address")
     if len(payload.password) < 8:
@@ -330,8 +368,9 @@ async def register(payload: RegisterIn) -> dict:
 
 @api.post("/auth/login")
 async def login(payload: LoginIn) -> dict:
-    email = payload.email.strip().lower()
-    user = await db.users.find_one({"email": email})
+    email = normalize_email(payload.email)
+    raw_email = payload.email.strip().lower()
+    user = await db.users.find_one({"email": email}) or await db.users.find_one({"email": raw_email})
     if not user or not _check_password(payload.password, user.get("password_hash", "")):
         raise HTTPException(401, "Incorrect email or password")
     return await _issue_session(user)
@@ -506,13 +545,22 @@ async def _generate_image(
 
 
 @api.post("/transform")
-async def transform(payload: TransformIn, user: dict = Depends(get_current_user)) -> dict:
+async def transform(payload: TransformIn, request: Request, user: dict = Depends(get_current_user)) -> dict:
     config = await get_config()
     limit = int(config.get("daily_limit_free", 3))
     used = await daily_usage(user["user_id"])
     premium = is_premium_active(user)
-    if not premium and used >= limit:
-        raise HTTPException(402, "Daily generation limit reached. Upgrade to Premium.")
+    credits = int(user.get("pack_credits", 0))
+    use_credit = False
+    if not premium:
+        free_left = used < limit
+        if free_left and await ip_free_usage(client_ip(request)) >= FREE_IP_DAILY_CAP:
+            free_left = False  # this network exhausted its free share today
+        if not free_left:
+            if credits > 0:
+                use_credit = True
+            else:
+                raise HTTPException(402, "Free limit reached. Buy a 20-generation pack or go Premium.")
 
     image_b64 = _clean_b64(payload.image_base64)
     if not image_b64 or len(image_b64) < 100:
@@ -550,7 +598,15 @@ async def transform(payload: TransformIn, user: dict = Depends(get_current_user)
         "created_at": utcnow(),
     }
     await db.transformations.insert_one(doc)
-    await increment_usage(user["user_id"])
+    if use_credit:
+        await db.users.update_one(
+            {"user_id": user["user_id"], "pack_credits": {"$gt": 0}},
+            {"$inc": {"pack_credits": -1}},
+        )
+    else:
+        await increment_usage(user["user_id"])
+        if not premium:
+            await increment_ip_usage(client_ip(request))
 
     doc.pop("_id", None)
     return doc
@@ -610,11 +666,13 @@ async def usage(user: dict = Depends(get_current_user)) -> dict:
     limit = int(config.get("daily_limit_free", 3))
     used = await daily_usage(user["user_id"])
     premium = is_premium_active(user)
+    credits = int(user.get("pack_credits", 0))
     return {
         "used": used,
         "limit": limit,
         "is_premium": premium,
-        "remaining": 999 if premium else max(limit - used, 0),
+        "pack_credits": credits,
+        "remaining": 999 if premium else max(limit - used, 0) + credits,
     }
 
 
@@ -791,8 +849,9 @@ async def billing_status(session_id: str, user: dict = Depends(get_current_user)
                 await _sync_subscription_state(doc["user_id"], subscription_id)
             elif mode == "payment" and doc.get("kind") == "pack":
                 await db.users.update_one(
-                    {"user_id": doc["user_id"]},
+                    {"user_id": doc["user_id"], "content_packs": {"$ne": session_id}},
                     {"$addToSet": {"content_packs": session_id},
+                     "$inc": {"pack_credits": PACK_CREDITS},
                      "$set": {"last_pack_at": utcnow()}},
                 )
 
@@ -830,9 +889,11 @@ async def _apply_event(event: dict) -> None:
         if user_id and kind == "subscription" and subscription_id:
             await _sync_subscription_state(user_id, subscription_id)
         elif user_id and kind == "pack" and session_id:
+            # Idempotent: credits granted once per session even if Stripe re-delivers.
             await db.users.update_one(
-                {"user_id": user_id},
+                {"user_id": user_id, "content_packs": {"$ne": session_id}},
                 {"$addToSet": {"content_packs": session_id},
+                 "$inc": {"pack_credits": PACK_CREDITS},
                  "$set": {"last_pack_at": utcnow()}},
             )
 
