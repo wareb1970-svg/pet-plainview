@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -31,6 +31,41 @@ export default function Login() {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID as string | undefined;
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || !googleClientId || typeof document === "undefined") return;
+    const setup = () => {
+      const g = (window as any).google;
+      const host = document.getElementById("google-signin-btn");
+      if (!g?.accounts?.id || !host) return;
+      g.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: async (resp: any) => {
+          try {
+            setBusy(true);
+            setError(null);
+            const res = await api.authGoogle(resp.credential);
+            await setSession(res.session_token, res.user);
+            router.replace("/(tabs)");
+          } catch (e: any) {
+            setError(e?.message ?? "Google sign-in failed. Please try again.");
+          } finally {
+            setBusy(false);
+          }
+        },
+      });
+      host.innerHTML = "";
+      g.accounts.id.renderButton(host, { theme: "outline", size: "large", width: 320, text: "continue_with" });
+    };
+    if ((window as any).google?.accounts?.id) { setup(); return; }
+    const s = document.createElement("script");
+    s.src = "https://accounts.google.com/gsi/client";
+    s.async = true;
+    s.onload = setup;
+    document.head.appendChild(s);
+  }, [googleClientId]);
 
   async function submit() {
     if (busy) return;
@@ -85,6 +120,17 @@ export default function Login() {
                 ? "Welcome back. Sign in to keep creating."
                 : "Create an account to transform your pet."}
             </Text>
+
+            {Platform.OS === "web" && googleClientId ? (
+              <>
+                <View nativeID="google-signin-btn" style={{ alignItems: "center", marginBottom: 14, minHeight: 44 }} />
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                  <View style={{ flex: 1, height: 1, backgroundColor: colors.textMuted, opacity: 0.3 }} />
+                  <Text style={{ color: colors.textMuted, fontSize: 12 }}>or use email</Text>
+                  <View style={{ flex: 1, height: 1, backgroundColor: colors.textMuted, opacity: 0.3 }} />
+                </View>
+              </>
+            ) : null}
 
             {mode === "register" && (
               <TextInput

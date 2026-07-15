@@ -90,6 +90,12 @@ export const api = {
       body: JSON.stringify({ email, password, name }),
     });
   },
+  async authGoogle(id_token: string) {
+    return request<{ session_token: string; user: MeUser }>("/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ id_token }),
+    });
+  },
   async authLogin(email: string, password: string) {
     return request<{ session_token: string; user: MeUser }>("/auth/login", {
       method: "POST",

@@ -37,6 +37,7 @@ DB_NAME = os.environ["DB_NAME"]
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 STRIPE_API_KEY = os.environ["STRIPE_API_KEY"]
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
 # Comma-separated list, e.g. "https://pets.plainviewit.online,http://localhost:8081"
 ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "*").split(",") if o.strip()]
 
@@ -86,6 +87,10 @@ class RegisterIn(BaseModel):
 class LoginIn(BaseModel):
     email: str
     password: str
+
+
+class GoogleIn(BaseModel):
+    id_token: str
 
 
 class TransformIn(BaseModel):
@@ -398,6 +403,43 @@ async def login(payload: LoginIn) -> dict:
     user = await db.users.find_one({"email": email}) or await db.users.find_one({"email": raw_email})
     if not user or not _check_password(payload.password, user.get("password_hash", "")):
         raise HTTPException(401, "Incorrect email or password")
+    return await _issue_session(user)
+
+
+@api.post("/auth/google")
+async def google_login(payload: GoogleIn) -> dict:
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(503, "Google sign-in is not configured")
+    async with httpx.AsyncClient(timeout=15) as http:
+        r = await http.get(
+            "https://oauth2.googleapis.com/tokeninfo",
+            params={"id_token": payload.id_token},
+        )
+    if r.status_code != 200:
+        raise HTTPException(401, "Google sign-in failed")
+    info = r.json()
+    if info.get("aud") != GOOGLE_CLIENT_ID or info.get("email_verified") not in (True, "true"):
+        raise HTTPException(401, "Google sign-in failed")
+    email = normalize_email(info.get("email", ""))
+    if not EMAIL_RE.match(email):
+        raise HTTPException(401, "Google sign-in failed")
+
+    user = await db.users.find_one({"email": email})
+    if not user:
+        is_admin = (await db.users.count_documents({}) == 0)
+        user = {
+            "user_id": f"user_{uuid.uuid4().hex[:12]}",
+            "email": email,
+            "name": (info.get("name") or email.split("@")[0]).strip(),
+            "picture": info.get("picture"),
+            "password_hash": "",
+            "premium_expires_at": None,
+            "subscription_status": None,
+            "is_admin": is_admin,
+            "created_at": utcnow(),
+            "auth_provider": "google",
+        }
+        await db.users.insert_one(user)
     return await _issue_session(user)
 
 

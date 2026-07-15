@@ -13,6 +13,16 @@ export default function Root({ children }: PropsWithChildren) {
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
         <title>What If My Pet Was…</title>
+        <meta name="description" content="Upload a photo of your pet and see who they'd be in another life — a detective, a Renaissance masterpiece, even a human. First portraits are free." />
+        <meta property="og:title" content="What If My Pet Was…" />
+        <meta property="og:description" content="Turn your pet into a detective, a Renaissance masterpiece, or the human they were always meant to be. First portraits free." />
+        <meta property="og:image" content="https://pets.plainviewit.online/og-image.jpg" />
+        <meta property="og:url" content="https://pets.plainviewit.online" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="What If My Pet Was…" />
+        <meta name="twitter:description" content="Turn your pet into a detective, a masterpiece, or the human they were always meant to be." />
+        <meta name="twitter:image" content="https://pets.plainviewit.online/og-image.jpg" />
         {/*
           Disable body scrolling on web to make ScrollView components work correctly.
         */}
