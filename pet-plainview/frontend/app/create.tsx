@@ -33,8 +33,11 @@ export default function Create() {
   const params = useLocalSearchParams<{ slug?: string }>();
 
   const [image, setImage] = useState<{ uri: string; b64: string } | null>(null);
+  const [image2, setImage2] = useState<{ uri: string; b64: string } | null>(null);
+  const [pickSlot, setPickSlot] = useState<1 | 2>(1);
   const [petName, setPetName] = useState("");
   const [slug, setSlug] = useState<string>(params.slug ?? "surprise");
+  const [memeText, setMemeText] = useState("");
   const [style, setStyle] = useState<string>("realistic");
   const [stylesList, setStylesList] = useState<Style[]>([]);
   const [busy, setBusy] = useState(false);
@@ -96,8 +99,11 @@ export default function Create() {
       { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG, base64: true }
     );
     if (!manip.base64) throw new Error("Couldn't read image");
-    setImage({ uri: manip.uri, b64: manip.base64 });
+    if (pickSlot === 2) setImage2({ uri: manip.uri, b64: manip.base64 });
+    else setImage({ uri: manip.uri, b64: manip.base64 });
   }
+
+  function resetSlotSoon() { setTimeout(() => setPickSlot(1), 400); }
 
   async function pickFromLibrary() {
     if (!(await ensureLibraryPerm())) {
@@ -115,6 +121,8 @@ export default function Create() {
       await processPicked(await toWebSafeUri(a.uri, (a as any).mimeType, (a as any).fileName));
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      resetSlotSoon();
     }
   }
 
@@ -151,6 +159,8 @@ export default function Create() {
       setError(null);
       const res = await api.transform({
         image_base64: image.b64,
+        image_base64_2: image2?.b64,
+        meme_text: slug === "meme_custom" ? memeText.trim() || undefined : undefined,
         pet_name: petName.trim() || undefined,
         category_slug: slug,
         style,
@@ -194,7 +204,7 @@ export default function Create() {
               <Image source={{ uri: image.uri }} style={styles.photo} />
               <Pressable
                 testID="clear-photo"
-                onPress={() => setImage(null)}
+                onPress={() => { setImage(null); setImage2(null); }}
                 style={[styles.clearBtn, { backgroundColor: colors.overlay }]}
               >
                 <Ionicons name="close" size={16} color="#fff" />
@@ -219,6 +229,31 @@ export default function Create() {
             <Text style={{ color: colors.text, fontWeight: "700" }}>Camera</Text>
           </Pressable>
         </View>
+
+        {image && (
+          <View style={{ marginTop: 10 }}>
+            {image2 ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <Image source={{ uri: image2.uri }} style={{ width: 54, height: 54, borderRadius: 12 }} />
+                <Text style={{ color: colors.text, fontWeight: "700", flex: 1 }}>Fusion mode: two pets will be blended!</Text>
+                <Pressable testID="clear-photo-2" onPress={() => setImage2(null)}>
+                  <Ionicons name="close-circle" size={22} color={colors.textMuted} />
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                testID="add-second-pet"
+                onPress={() => { setPickSlot(2); pickFromLibrary(); }}
+                style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 6 }}
+              >
+                <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>
+                  Add a second pet to FUSE them (optional)
+                </Text>
+              </Pressable>
+            )}
+          </View>
+        )}
 
         {/* 2. Pet name */}
         <Text style={[styles.stepTitle, { color: colors.text, marginTop: 6 }]}>2. Pet name (optional)</Text>
@@ -295,6 +330,25 @@ export default function Create() {
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </Pressable>
+
+        {slug === "meme_custom" && (
+          <View style={{ marginTop: 10 }}>
+            <Text style={[styles.stepTitle, { color: colors.text }]}>What's the meme?</Text>
+            <TextInput
+              testID="meme-text-input"
+              value={memeText}
+              onChangeText={(t) => setMemeText(t.slice(0, 120))}
+              placeholder={'A few words — e.g. "when the treat bag crinkles"'}
+              placeholderTextColor={colors.textMuted}
+              maxLength={120}
+              style={[
+                styles.input,
+                { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text },
+              ]}
+              returnKeyType="done"
+            />
+          </View>
+        )}
 
         {error && (
           <Text testID="create-error" style={{ color: colors.danger, textAlign: "center" }}>
