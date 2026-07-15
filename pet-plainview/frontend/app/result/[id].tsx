@@ -9,6 +9,7 @@ import {
   Platform,
   Share,
   ActivityIndicator,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -47,6 +48,8 @@ export default function Result() {
   const [loading, setLoading] = useState(true);
   const [tpl, setTpl] = useState<TplKey>("clean");
   const [regenerating, setRegenerating] = useState(false);
+  const [caption, setCaption] = useState("");
+  const [captionOpen, setCaptionOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -70,7 +73,7 @@ export default function Result() {
     try {
       setRegenerating(true);
       const r = await api.transform({
-        image_base64: item.image_base64, // reuse existing generated as reference is OK-ish; better would be original — future.
+        image_base64: item.source_image_base64 || item.image_base64, // reuse existing generated as reference is OK-ish; better would be original — future.
         pet_name: item.pet_name ?? undefined,
         category_slug: item.category_slug,
       });
@@ -172,6 +175,14 @@ export default function Result() {
                 style={styles.portrait}
                 resizeMode="cover"
               />
+              {caption.trim().length > 0 && (
+                <View style={styles.bubbleWrap} pointerEvents="none">
+                  <View style={styles.bubble}>
+                    <Text style={styles.bubbleText}>{caption.trim()}</Text>
+                  </View>
+                  <View style={styles.bubbleTail} />
+                </View>
+              )}
               {showWatermark && (
                 <View style={styles.watermark}>
                   <Text style={styles.watermarkText}>WHATIFMYPET</Text>
@@ -206,6 +217,47 @@ export default function Result() {
                 </View>
               )}
             </View>
+          </View>
+
+          {item.source_image_base64 && (
+            <View style={{ marginTop: 14 }}>
+              <Text style={{ color: colors.textMuted, fontWeight: "700", fontSize: 12, marginBottom: 8, letterSpacing: 1 }}>
+                BEFORE  →  AFTER
+              </Text>
+              <View style={styles.compareRow}>
+                <Image
+                  source={{ uri: `data:image/jpeg;base64,${item.source_image_base64}` }}
+                  style={styles.compareImg}
+                  resizeMode="cover"
+                />
+                <Ionicons name="arrow-forward" size={20} color={colors.textMuted} />
+                <Image
+                  source={{ uri: `data:image/png;base64,${item.image_base64}` }}
+                  style={styles.compareImg}
+                  resizeMode="cover"
+                />
+              </View>
+            </View>
+          )}
+
+          <View style={{ marginTop: 14, marginBottom: 4 }}>
+            <Pressable testID="caption-toggle" onPress={() => setCaptionOpen(!captionOpen)} style={styles.captionToggle}>
+              <Ionicons name="chatbubble-ellipses-outline" size={16} color={colors.text} />
+              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 13 }}>
+                {caption ? "Edit speech bubble" : "Add a speech bubble"}
+              </Text>
+            </Pressable>
+            {captionOpen && (
+              <TextInput
+                testID="caption-input"
+                style={[styles.captionInput, { color: colors.text, borderColor: colors.border }]}
+                placeholder={'What would they say? e.g. "I meant to do that."'}
+                placeholderTextColor={colors.textMuted}
+                value={caption}
+                onChangeText={(t) => setCaption(t.slice(0, 80))}
+                maxLength={80}
+              />
+            )}
           </View>
 
           {/* Copy card */}
@@ -388,4 +440,12 @@ const styles = StyleSheet.create({
   tplSwatch: { width: 16, height: 16, borderRadius: 8 },
 
   actions: { flexDirection: "row", gap: 10, marginTop: 18 },
+  compareRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  compareImg: { flex: 1, aspectRatio: 1, borderRadius: 14 },
+  captionToggle: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8 },
+  captionInput: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, marginTop: 6 },
+  bubbleWrap: { position: "absolute", top: 12, left: 12, right: 12, alignItems: "flex-start" },
+  bubble: { backgroundColor: "rgba(255,255,255,0.95)", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 9, maxWidth: "85%" },
+  bubbleText: { color: "#111", fontWeight: "800", fontSize: 14 },
+  bubbleTail: { width: 0, height: 0, marginLeft: 26, borderLeftWidth: 8, borderRightWidth: 8, borderTopWidth: 12, borderLeftColor: "transparent", borderRightColor: "transparent", borderTopColor: "rgba(255,255,255,0.95)" },
 });
