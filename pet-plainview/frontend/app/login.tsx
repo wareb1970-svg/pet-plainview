@@ -61,14 +61,7 @@ export default function Login() {
         style={styles.hero}
         resizeMode="cover"
       />
-      <LinearGradient
-        colors={[
-          "transparent",
-          isDark ? "rgba(0,0,0,0.85)" : "rgba(255,255,255,0.9)",
-          colors.bg,
-        ]}
-        style={styles.veil}
-      />
+
       <SafeAreaView style={styles.sheet} edges={["bottom"]}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -177,7 +170,6 @@ export default function Login() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   hero: { position: "absolute", top: 0, left: 0, right: 0, height: "55%" },
-  veil: { position: "absolute", top: 0, left: 0, right: 0, height: "60%" },
   sheet: { flex: 1, justifyContent: "flex-end" },
   form: { paddingHorizontal: 24, paddingBottom: 16, alignItems: "stretch" },
   badgeRow: { flexDirection: "row", marginBottom: 12 },
