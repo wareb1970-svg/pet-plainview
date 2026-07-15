@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Pressable,
   ActivityIndicator,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -19,8 +18,6 @@ import { useTheme } from "@/src/theme/ThemeProvider";
 import { useAuth } from "@/src/auth/AuthProvider";
 import { api } from "@/src/api/client";
 
-const HERO =
-  "https://images.unsplash.com/photo-1583513702411-9dade5d3cb12?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzZ8MHwxfHNlYXJjaHwxfHxmdW5ueSUyMGRvZyUyMGNvc3R1bWUlMjBwb3J0cmFpdHxlbnwwfHx8fDE3ODM5NTQ5ODV8MA&ixlib=rb-4.1.0&q=85";
 
 export default function Login() {
   const { colors, isDark } = useTheme();
@@ -58,7 +55,15 @@ export default function Login() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.bg }]} testID="login-screen">
-      <Image source={{ uri: HERO }} style={styles.hero} />
+      <LinearGradient
+        colors={["#7C3AED", "#EC4899", "#F97316"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.hero}
+      >
+        <Text style={styles.heroEmoji}>🐶 🎨 👩‍🚀 🦊 🖼️</Text>
+        <Text style={styles.heroEmoji}>🐱 💼 🐞 👨‍🍳 🌊</Text>
+      </LinearGradient>
       <LinearGradient
         colors={[
           "transparent",
@@ -174,7 +179,8 @@ export default function Login() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  hero: { position: "absolute", top: 0, left: 0, right: 0, height: "55%" },
+  hero: { position: "absolute", top: 0, left: 0, right: 0, height: "55%", alignItems: "center", justifyContent: "center", gap: 18 },
+  heroEmoji: { fontSize: 40, letterSpacing: 6 },
   veil: { position: "absolute", top: 0, left: 0, right: 0, height: "60%" },
   sheet: { flex: 1, justifyContent: "flex-end" },
   form: { paddingHorizontal: 24, paddingBottom: 16, alignItems: "stretch" },
