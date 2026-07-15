@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   View,
   Text,
+  Image,
   TextInput,
   StyleSheet,
   Pressable,
@@ -55,15 +56,11 @@ export default function Login() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.bg }]} testID="login-screen">
-      <LinearGradient
-        colors={["#7C3AED", "#EC4899", "#F97316"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <Image
+        source={require("@/assets/images/login-hero.jpg")}
         style={styles.hero}
-      >
-        <Text style={styles.heroEmoji}>🐶 🎨 👩‍🚀 🦊 🖼️</Text>
-        <Text style={styles.heroEmoji}>🐱 💼 🐞 👨‍🍳 🌊</Text>
-      </LinearGradient>
+        resizeMode="cover"
+      />
       <LinearGradient
         colors={[
           "transparent",
@@ -179,8 +176,7 @@ export default function Login() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  hero: { position: "absolute", top: 0, left: 0, right: 0, height: "55%", alignItems: "center", justifyContent: "center", gap: 18 },
-  heroEmoji: { fontSize: 40, letterSpacing: 6 },
+  hero: { position: "absolute", top: 0, left: 0, right: 0, height: "55%" },
   veil: { position: "absolute", top: 0, left: 0, right: 0, height: "60%" },
   sheet: { flex: 1, justifyContent: "flex-end" },
   form: { paddingHorizontal: 24, paddingBottom: 16, alignItems: "stretch" },

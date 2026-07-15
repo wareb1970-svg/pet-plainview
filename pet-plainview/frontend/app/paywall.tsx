@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, Platform, ActivityIndicator, Linking } from "react-native";
+import { useState } from "react";
+import { View, Text, StyleSheet, Pressable, ScrollView, Platform, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,30 +10,29 @@ import { useTheme } from "@/src/theme/ThemeProvider";
 import { useAuth } from "@/src/auth/AuthProvider";
 import { api } from "@/src/api/client";
 
+const TIERS = [
+  { kind: "pack_10", credits: 10, price: 2.99, tag: null, per: "30¢ / image" },
+  { kind: "pack_20", credits: 20, price: 4.99, tag: "MOST POPULAR", per: "25¢ / image" },
+  { kind: "pack_35", credits: 35, price: 7.79, tag: "BEST VALUE", per: "22¢ / image" },
+] as const;
+
 const FEATURES = [
-  { icon: "infinite", label: "Unlimited generations" },
-  { icon: "sparkles", label: "All 40+ transformation themes" },
+  { icon: "color-palette", label: "Every theme & art style included" },
+  { icon: "images", label: "Credits never expire" },
   { icon: "image", label: "HD downloads, no watermark" },
-  { icon: "flash", label: "Priority AI processing" },
-  { icon: "cloud", label: "Cloud history across devices" },
-  { icon: "gift", label: "Early access to new content packs" },
+  { icon: "flash", label: "Fusion mode — blend two pets" },
 ] as const;
 
 export default function Paywall() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { user, refresh } = useAuth();
-  const [busy, setBusy] = useState(false);
+  const { refresh } = useAuth();
+  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [prices, setPrices] = useState<{ premium: number; pack: number }>({ premium: 9.99, pack: 4.99 });
 
-  useEffect(() => {
-    if (user?.is_premium) router.replace("/(tabs)/settings");
-  }, [user, router]);
-
-  async function upgrade(kind: "subscription" | "pack") {
+  async function buy(kind: string) {
     try {
-      setBusy(true);
+      setBusy(kind);
       setError(null);
       const origin =
         Platform.OS === "web" && typeof window !== "undefined"
@@ -44,15 +43,12 @@ export default function Paywall() {
         window.location.href = res.url;
       } else {
         await WebBrowser.openBrowserAsync(res.url);
-        // Poll for completion after user returns
-        setTimeout(async () => {
-          await refresh();
-        }, 3000);
+        setTimeout(async () => { await refresh(); }, 3000);
       }
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
@@ -63,20 +59,39 @@ export default function Paywall() {
           <Pressable testID="paywall-close" onPress={() => router.back()} style={styles.iconBtn}>
             <Ionicons name="close" size={22} color="#fff" />
           </Pressable>
-          <Text style={styles.headerTitle}>Go Premium</Text>
+          <Text style={styles.headerTitle}>Get Generations</Text>
           <View style={{ width: 40 }} />
         </View>
 
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
           <LinearGradient colors={["#7C3AED", "#EC4899", "#F97316"]} style={styles.hero}>
             <View style={styles.gemWrap}>
-              <Ionicons name="diamond" size={30} color="#fff" />
+              <Ionicons name="sparkles" size={30} color="#fff" />
             </View>
-            <Text style={styles.heroTitle}>Unlimited pet magic</Text>
-            <Text style={styles.heroSub}>
-              Everything you love, no limits. Cancel anytime.
-            </Text>
+            <Text style={styles.heroTitle}>More pet magic</Text>
+            <Text style={styles.heroSub}>Pay once. Use anytime. No subscription, ever.</Text>
           </LinearGradient>
+
+          {TIERS.map((t) => (
+            <Pressable key={t.kind} testID={`buy-${t.kind}`} disabled={busy !== null} onPress={() => buy(t.kind)}>
+              <View style={[styles.tier, t.tag === "MOST POPULAR" && styles.tierHot]}>
+                {t.tag && (
+                  <View style={[styles.badge, t.tag === "BEST VALUE" && { backgroundColor: "#059669" }]}>
+                    <Text style={styles.badgeText}>{t.tag}</Text>
+                  </View>
+                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.tierTitle}>{t.credits} generations</Text>
+                  <Text style={styles.tierPer}>{t.per}</Text>
+                </View>
+                {busy === t.kind ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.tierPrice}>${t.price.toFixed(2)}</Text>
+                )}
+              </View>
+            </Pressable>
+          ))}
 
           <View style={styles.features}>
             {FEATURES.map((f) => (
@@ -88,23 +103,6 @@ export default function Paywall() {
               </View>
             ))}
           </View>
-
-          <Pressable testID="upgrade-monthly" disabled={busy} onPress={() => upgrade("subscription")}>
-            <LinearGradient colors={colors.gradient} style={styles.cta}>
-              {busy ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Text style={styles.ctaText}>Go Premium — ${prices.premium.toFixed(2)}/mo</Text>
-                </>
-              )}
-            </LinearGradient>
-          </Pressable>
-
-          <Pressable testID="buy-pack" disabled={busy} onPress={() => upgrade("pack")} style={styles.packBtn}>
-            <Ionicons name="cube-outline" size={18} color="#fff" />
-            <Text style={styles.packText}>Or get 20 generations — ${prices.pack.toFixed(2)}</Text>
-          </Pressable>
 
           {error && (
             <Text testID="paywall-error" style={{ color: "#FF6B6B", textAlign: "center", marginTop: 14 }}>
@@ -120,65 +118,23 @@ export default function Paywall() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
+  header: { paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   iconBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 20 },
   headerTitle: { color: "#fff", fontSize: 16, fontWeight: "800" },
   hero: { borderRadius: 26, padding: 24, alignItems: "flex-start", gap: 6, marginBottom: 20 },
-  gemWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-  },
+  gemWrap: { width: 56, height: 56, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center", marginBottom: 8 },
   heroTitle: { color: "#fff", fontSize: 26, fontWeight: "800", letterSpacing: -0.5 },
   heroSub: { color: "rgba(255,255,255,0.85)", fontSize: 14 },
-  features: { gap: 12, marginBottom: 24 },
-  feature: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 14,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 16,
-    borderColor: "rgba(255,255,255,0.08)",
-    borderWidth: 1,
-  },
-  featureIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.1)",
-  },
+  tier: { flexDirection: "row", alignItems: "center", gap: 12, padding: 18, marginBottom: 12, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 18, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
+  tierHot: { borderColor: "#EC4899", borderWidth: 2, backgroundColor: "rgba(236,72,153,0.08)" },
+  badge: { position: "absolute", top: -9, left: 16, backgroundColor: "#EC4899", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 2 },
+  badgeText: { color: "#fff", fontSize: 10, fontWeight: "900", letterSpacing: 0.6 },
+  tierTitle: { color: "#fff", fontSize: 17, fontWeight: "800" },
+  tierPer: { color: "rgba(255,255,255,0.55)", fontSize: 12, marginTop: 2 },
+  tierPrice: { color: "#fff", fontSize: 19, fontWeight: "900" },
+  features: { gap: 12, marginTop: 10, marginBottom: 10 },
+  feature: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 16, borderColor: "rgba(255,255,255,0.08)", borderWidth: 1 },
+  featureIcon: { width: 30, height: 30, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.1)" },
   featureText: { color: "#fff", fontWeight: "600", fontSize: 14 },
-  cta: {
-    height: 56,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 4,
-  },
-  ctaText: { color: "#fff", fontWeight: "800", fontSize: 15 },
-  packBtn: {
-    marginTop: 12,
-    height: 52,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
-  },
-  packText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   legal: { color: "rgba(255,255,255,0.5)", textAlign: "center", fontSize: 11, marginTop: 20 },
 });

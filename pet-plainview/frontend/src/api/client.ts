@@ -57,6 +57,7 @@ export type Transformation = {
   style_label?: string;
   pet_name?: string | null;
   image_base64: string;
+  source_image_base64?: string;
   name: string;
   occupation: string;
   personality: string;
@@ -111,6 +112,8 @@ export const api = {
   },
   async transform(body: {
     image_base64: string;
+    image_base64_2?: string;
+    meme_text?: string;
     pet_name?: string;
     category_slug: string;
     style?: string;
@@ -140,7 +143,7 @@ export const api = {
       "/usage"
     );
   },
-  async checkout(kind: "subscription" | "pack", origin: string) {
+  async checkout(kind: string, origin: string) {
     return request<{ url: string; session_id: string }>("/billing/checkout", {
       method: "POST",
       body: JSON.stringify({ kind, origin }),
