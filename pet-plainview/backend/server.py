@@ -90,6 +90,8 @@ class LoginIn(BaseModel):
 
 class TransformIn(BaseModel):
     image_base64: str
+    image_base64_2: Optional[str] = None
+    meme_text: Optional[str] = None
     pet_name: Optional[str] = None
     category_slug: str
     style: Optional[str] = None
@@ -167,6 +169,23 @@ CATEGORIES: list[dict] = [
 
     {"slug":"future_2200","label":"Future 2200","group":"Future","prompt":"in a sleek cyberpunk outfit with neon accents and a holographic visor, futuristic megacity at night bathed in electric magenta and cyan neon and drifting rain-lit haze","emoji":"🌆"},
     {"slug":"space_explorer","label":"Space Explorer","group":"Future","prompt":"as a space explorer in an advanced exosuit on an alien planet with two moons in the sky, eerie twin-moon light casting cool violet-and-teal double shadows","emoji":"🚀"},
+    {"slug":"masterpiece_renaissance","label":"Renaissance Portrait","group":"Masterpieces","prompt":"as the subject of a 16th-century Renaissance oil masterpiece, seated in three-quarter view with hands gently folded, enigmatic half-smile, sfumato shading, hazy river-valley landscape behind, fine craquelure oil-paint texture","emoji":"🖼️"},
+    {"slug":"masterpiece_postimpressionist","label":"Post-Impressionist","group":"Masterpieces","prompt":"painted in swirling post-impressionist oil style, thick impasto brushstrokes, night sky of luminous spirals and stars above a sleepy village, deep cobalt and gold palette","emoji":"🌌"},
+    {"slug":"masterpiece_dutch","label":"Dutch Golden Age","group":"Masterpieces","prompt":"as a Dutch Golden Age portrait, turning toward the viewer against a dark background, wearing a blue-and-gold turban and a single pearl earring, soft window light on the face, quiet luminous mood","emoji":"🫧"},
+    {"slug":"masterpiece_ukiyoe","label":"Ukiyo-e Woodblock","group":"Masterpieces","prompt":"in classic Japanese ukiyo-e woodblock print style, riding a small boat beneath a great cresting indigo wave with claw-like foam, Mount Fuji tiny on the horizon, flat bold colors and visible printing lines","emoji":"🌊"},
+    {"slug":"cubist","label":"Cubist Portrait","group":"Masterpieces","prompt":"as a cubist portrait, the face and body fractured into overlapping geometric planes seen from several angles at once, bold black outlines, muted earth tones with one striking accent color","emoji":"🔷"},
+    {"slug":"surrealist","label":"Surrealist Dream","group":"Masterpieces","prompt":"in a surrealist dreamscape, a vast empty desert at golden dusk with impossibly long shadows, melting clocks draped over a bare tree branch, floating doorway in the distance, hyper-real oil rendering","emoji":"🫠"},
+    {"slug":"insect","label":"Insect","group":"Wild Side","preservation":"transform","prompt":"as the insect that best matches their personality — carrying their exact coat colors and markings into the shell, wings and body, extreme macro photography on a dew-covered leaf, glittering morning backlight, astonishing fine detail","emoji":"🐞"},
+    {"slug":"inner_animal","label":"Your Inner Animal","group":"Wild Side","preservation":"transform","prompt":"as the wild animal that best matches their features, energy and personality — carry their hair and eye color into the animal's coat and eyes, National Geographic quality wildlife portrait, natural habitat, golden hour light","emoji":"🦊"},
+    {"slug":"office_meltdown","label":"Office Meltdown","group":"Comedy","prompt":"having a hilarious meltdown in a tiny office cubicle, necktie askew, papers flying everywhere, coffee mid-spill, fluorescent office lighting, caught mid-dramatic-gasp like a sitcom freeze frame","emoji":"🤯"},
+    {"slug":"tiny_chef","label":"Tiny Chef Chaos","group":"Comedy","prompt":"as a tiny frantic chef in a toque and apron mid-kitchen-disaster, flour cloud in the air, pasta draped over one ear, flames leaping comically from a pan behind, warm kitchen light, slapstick energy","emoji":"👨‍🍳"},
+    {"slug":"gym_bro","label":"Gym Legend","group":"Comedy","prompt":"as an over-serious gym legend in a tiny sweatband and stringer tank, flexing beside comically oversized dumbbells, dramatic spotlight and haze, motivational-poster energy played completely straight","emoji":"💪"},
+    {"slug":"grand_feast","label":"The Grand Feast","group":"Famous Scenes","prompt":"as the central figure of a High Renaissance fresco: thirteen animals seated along one side of a long banquet table draped in white linen, bread and goblets before them, the pet at the very center gesturing mid-conversation, dramatic perspective lines converging behind, aged fresco texture","emoji":"🍷"},
+    {"slug":"surrender_scene","label":"The Surrender","group":"Famous Scenes","prompt":"as a dignified 19th-century general in a grand historical oil painting, seated at a small parlor table signing surrender documents opposite another animal general in an opposing uniform, aides of various animal species standing solemnly around the room, soft window light, museum oil-painting finish","emoji":"🎖️"},
+    {"slug":"crossing_delaware","label":"Crossing the River","group":"Famous Scenes","prompt":"as a heroic general standing tall at the bow of a crowded rowboat crossing an icy river at dawn, a flag rippling behind, animal soldiers rowing through the ice floes, monumental 19th-century history-painting style, golden storm light","emoji":"🚣"},
+    {"slug":"poker_night","label":"Poker Night","group":"Famous Scenes","prompt":"seated at a green-felt card table playing poker with four other animals of different species, cigars and chips scattered, one player sneaking a card under the table, warm lamplight from above, turn-of-the-century saloon oil-painting style","emoji":"🃏"},
+    {"slug":"meme_custom","label":"Make a Meme","group":"Meme Machine","preservation":"meme","prompt":"","emoji":"😂"},
+    {"slug":"americana_cover","label":"Americana Cover","group":"Famous Scenes","prompt":"as the star of a warm mid-century Americana magazine-cover illustration: a small-town scene rich with storytelling detail — a soda fountain, a freckled paperboy pup, a wide-eyed kitten looking on — painted in soft realistic gouache with gentle humor and heart","emoji":"🥤"},
 ]
 
 CATEGORY_LOOKUP = {c["slug"]: c for c in CATEGORIES}
@@ -274,7 +293,12 @@ def user_view(user: dict, used: int, limit: int) -> dict:
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
-PACK_CREDITS = 20          # generations granted per $4.99 pack
+PACK_CREDITS = 20          # legacy default (pre-tier purchases)
+PACK_TIERS = {
+    "pack_10": {"credits": 10, "usd": 2.99, "name": "Starter Pack — 10 generations"},
+    "pack_20": {"credits": 20, "usd": 4.99, "name": "Popular Pack — 20 generations"},
+    "pack_35": {"credits": 35, "usd": 7.79, "name": "Best Value Pack — 35 generations"},
+}
 FREE_IP_DAILY_CAP = 5      # free (unpaid) generations allowed per IP per day, across all accounts
 
 
@@ -483,25 +507,63 @@ async def _generate_image(
     pet_name: Optional[str],
     image_b64: str,
     style: dict,
+    image_b64_2: Optional[str] = None,
+    meme_text: Optional[str] = None,
 ) -> Optional[str]:
-    """Build a preservation-aware prompt (animal vs human) and generate with Nano Banana."""
+    """Build a preservation-aware prompt (animal / human / transform) and generate with Nano Banana."""
     scene = category["prompt"]
     preservation = category.get("preservation", "animal")
 
-    if preservation == "human":
+    fusion_prefix = ""
+    if image_b64_2:
+        fusion_prefix = (
+            "TWO different pets are provided in the photos. First, imagine ONE new pet that blends "
+            "both — mixing their species traits, coat colors, markings, ear and face shapes into a "
+            "single believable, adorable creature. Then: "
+        )
+
+    if preservation == "meme":
+        idea = (meme_text or "this pet being hilariously dramatic about nothing").strip()[:120]
         prompt = (
+            fusion_prefix +
+            f"Create a hilarious internet meme photo of this exact pet: {idea}. "
+            "Keep the pet's exact species, breed, coat pattern, markings and eye color so the owner "
+            "instantly recognizes them. Stage the scene with exaggerated, meme-worthy expression and "
+            "body language — dramatic, absurd, perfectly timed. "
+            "Render a SHORT punchy caption of the idea in classic meme style: bold white capital "
+            "letters with a black outline, positioned at the top or bottom of the image. "
+            "Family friendly, no offensive content, no text other than the caption."
+        )
+    elif preservation == "human":
+        prompt = (
+            fusion_prefix +
             "Transform the pet in this photo into a fully HUMAN person. "
             "The human's hair color and hair texture should match the pet's coat color and pattern. "
             "The human's eye color should match the pet's exact eye color. "
-            "The human's facial expression, energy and overall vibe should capture the pet's personality — "
+            "Map the pet's most distinctive physical features onto the human: a long muzzle becomes "
+            "a long elegant nose; large or upright ears become prominent ears; wide-set eyes stay "
+            "wide-set; droopy jowls become soft full cheeks; a strong square jaw stays strong. "
+            "Echo the pet's facial geometry — the set and spacing of the eyes, the shape of the face, "
+            "the tilt of the head — and mirror the pet's posture and attitude. Exaggerate the shared "
+            "features just enough that the family resemblance is unmistakable and delightful. "
+            "The human's expression, energy and overall vibe should capture the pet's personality — "
             "the goal is a portrait where the owner instantly feels 'that's exactly who my pet would be as a person'. "
             "The subject is FULLY HUMAN — no animal ears, no snout, no fur, no tail, no whiskers, "
             "no anthropomorphic hybrid features whatsoever. Natural human anatomy and human skin. "
             f"Scene: {scene}. "
             "Family friendly."
         )
+    elif preservation == "transform":
+        prompt = (
+            fusion_prefix +
+            f"Reimagine the subject of this photo {scene}. "
+            "Carry the subject's exact color palette, distinctive markings, eye color and expression "
+            "into the new creature so anyone who knows them recognizes them instantly. "
+            "Photorealistic, richly detailed, family friendly."
+        )
     else:
         prompt = (
+            fusion_prefix +
             f"Transform the pet in this photo {scene}. "
             "Critically preserve the pet's exact species, breed, facial features, coat pattern, "
             "markings, eye color and expression so the owner instantly recognizes their pet. "
@@ -522,7 +584,7 @@ async def _generate_image(
                 "parts": [
                     {"text": prompt},
                     {"inline_data": {"mime_type": "image/jpeg", "data": image_b64}},
-                ],
+                ] + ([{"inline_data": {"mime_type": "image/jpeg", "data": image_b64_2}}] if image_b64_2 else []),
             }],
             "generationConfig": {"responseModalities": ["IMAGE", "TEXT"]},
         }
@@ -566,6 +628,9 @@ async def transform(payload: TransformIn, request: Request, user: dict = Depends
     image_b64 = _clean_b64(payload.image_base64)
     if not image_b64 or len(image_b64) < 100:
         raise HTTPException(400, "Invalid image")
+    image_b64_2 = _clean_b64(payload.image_base64_2) if payload.image_base64_2 else None
+    if image_b64_2 and len(image_b64_2) < 100:
+        image_b64_2 = None
 
     category = _pick_category(payload.category_slug)
     style_key = (payload.style or DEFAULT_STYLE).lower()
@@ -573,7 +638,8 @@ async def transform(payload: TransformIn, request: Request, user: dict = Depends
     if not style:
         raise HTTPException(400, "Unknown style")
 
-    image_task = asyncio.create_task(_generate_image(category, payload.pet_name, image_b64, style))
+    meme_text = (payload.meme_text or "").strip()[:120] or None
+    image_task = asyncio.create_task(_generate_image(category, payload.pet_name, image_b64, style, image_b64_2, meme_text))
     copy_task = asyncio.create_task(_generate_copy(category, payload.pet_name, image_b64))
     result_image, copy = await asyncio.gather(image_task, copy_task)
 
@@ -590,6 +656,7 @@ async def transform(payload: TransformIn, request: Request, user: dict = Depends
         "style_label": style["label"],
         "pet_name": payload.pet_name,
         "image_base64": result_image,
+        "source_image_base64": image_b64,
         "name": copy["name"],
         "occupation": copy["occupation"],
         "personality": copy["personality"],
@@ -622,7 +689,7 @@ async def list_transformations(
     query: dict = {"user_id": user["user_id"]}
     if favorites_only:
         query["favorite"] = True
-    cursor = db.transformations.find(query, {"_id": 0}).sort("created_at", -1).limit(limit)
+    cursor = db.transformations.find(query, {"_id": 0, "source_image_base64": 0}).sort("created_at", -1).limit(limit)
     items = [d async for d in cursor]
     return {"items": items}
 
@@ -758,28 +825,11 @@ async def checkout(payload: CheckoutIn, request: Request, user: dict = Depends(g
     cancel_url = f"{origin}/paywall"
 
     if payload.kind == "subscription":
-        amount = float(config.get("price_premium_usd", 9.99))
-        cents = int(round(amount * 100))
-        price_id = await _ensure_premium_price(cents)
-        session = await asyncio.to_thread(
-            stripe.checkout.Session.create,
-            mode="subscription",
-            line_items=[{"price": price_id, "quantity": 1}],
-            success_url=success_url,
-            cancel_url=cancel_url,
-            client_reference_id=user["user_id"],
-            customer_email=user.get("email"),
-            metadata={
-                "user_id": user["user_id"],
-                "kind": "subscription",
-                "product": "Premium Monthly",
-            },
-            subscription_data={
-                "metadata": {"user_id": user["user_id"], "kind": "subscription"},
-            },
-        )
-    elif payload.kind == "pack":
-        amount = float(config.get("price_pack_usd", 4.99))
+        raise HTTPException(400, "Subscriptions are retired — choose a generation pack instead.")
+    elif payload.kind in PACK_TIERS or payload.kind == "pack":
+        tier_key = payload.kind if payload.kind in PACK_TIERS else "pack_20"
+        tier = PACK_TIERS[tier_key]
+        amount = tier["usd"]
         cents = int(round(amount * 100))
         session = await asyncio.to_thread(
             stripe.checkout.Session.create,
@@ -789,7 +839,7 @@ async def checkout(payload: CheckoutIn, request: Request, user: dict = Depends(g
                     "price_data": {
                         "currency": "usd",
                         "unit_amount": cents,
-                        "product_data": {"name": "Content Pack"},
+                        "product_data": {"name": tier["name"]},
                     },
                     "quantity": 1,
                 }
@@ -801,7 +851,8 @@ async def checkout(payload: CheckoutIn, request: Request, user: dict = Depends(g
             metadata={
                 "user_id": user["user_id"],
                 "kind": "pack",
-                "product": "Content Pack",
+                "credits": str(tier["credits"]),
+                "product": tier["name"],
             },
         )
     else:
@@ -810,7 +861,8 @@ async def checkout(payload: CheckoutIn, request: Request, user: dict = Depends(g
     await db.payment_transactions.insert_one({
         "session_id": session["id"],
         "user_id": user["user_id"],
-        "kind": payload.kind,
+        "kind": "pack",
+        "credits": int(session["metadata"].get("credits", PACK_CREDITS)),
         "amount": amount,
         "currency": "usd",
         "status": "initiated",
@@ -849,10 +901,11 @@ async def billing_status(session_id: str, user: dict = Depends(get_current_user)
             if mode == "subscription" and subscription_id:
                 await _sync_subscription_state(doc["user_id"], subscription_id)
             elif mode == "payment" and doc.get("kind") == "pack":
+                credits = int(doc.get("credits") or PACK_CREDITS)
                 await db.users.update_one(
                     {"user_id": doc["user_id"], "content_packs": {"$ne": session_id}},
                     {"$addToSet": {"content_packs": session_id},
-                     "$inc": {"pack_credits": PACK_CREDITS},
+                     "$inc": {"pack_credits": credits},
                      "$set": {"last_pack_at": utcnow()}},
                 )
 
@@ -872,8 +925,9 @@ async def _apply_event(event: dict) -> None:
 
     if etype == "checkout.session.completed":
         session_id = data.get("id")
-        user_id = data.get("client_reference_id") or (data.get("metadata") or {}).get("user_id")
-        kind = (data.get("metadata") or {}).get("kind")
+        meta = data.get("metadata") or {}
+        user_id = data.get("client_reference_id") or meta.get("user_id")
+        kind = meta.get("kind")
         subscription_id = data.get("subscription")
         payment_status = data.get("payment_status") or "paid"
 
@@ -891,10 +945,14 @@ async def _apply_event(event: dict) -> None:
             await _sync_subscription_state(user_id, subscription_id)
         elif user_id and kind == "pack" and session_id:
             # Idempotent: credits granted once per session even if Stripe re-delivers.
+            try:
+                credits = int(meta.get("credits") or PACK_CREDITS)
+            except (TypeError, ValueError):
+                credits = PACK_CREDITS
             await db.users.update_one(
                 {"user_id": user_id, "content_packs": {"$ne": session_id}},
                 {"$addToSet": {"content_packs": session_id},
-                 "$inc": {"pack_credits": PACK_CREDITS},
+                 "$inc": {"pack_credits": credits},
                  "$set": {"last_pack_at": utcnow()}},
             )
 
