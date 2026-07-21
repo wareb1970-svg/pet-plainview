@@ -859,9 +859,9 @@ async def _sync_subscription_state(user_id: str, subscription_id: str) -> None:
     await db.users.update_one({"user_id": user_id}, {"$set": update})
 
 @api.post("/signal5/checkout")
-async def signal5_checkout(request: Request) -> dict:
+async def signal5_checkout(payload: dict) -> dict:
     config = await get_config()
-    payload = await request.json()
+    
 
     plan = payload.get("plan")
     origin = payload.get("origin", "https://signal5.app").rstrip("/")
