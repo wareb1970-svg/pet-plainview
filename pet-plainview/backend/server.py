@@ -858,6 +858,62 @@ async def _sync_subscription_state(user_id: str, subscription_id: str) -> None:
 
     await db.users.update_one({"user_id": user_id}, {"$set": update})
 
+@api.post("/signal5/checkout")
+async def signal5_checkout(request: Request) -> dict:
+    config = await get_config()
+    payload = await request.json()
+
+    plan = payload.get("plan")
+    origin = payload.get("origin", "https://signal5.app").rstrip("/")
+
+    plans = {
+        "pro": {
+            "name": "Signal5 Pro",
+            "amount": 995,
+        },
+        "business": {
+            "name": "Signal5 Business",
+            "amount": 1699,
+        },
+    }
+
+    if plan not in plans:
+        raise HTTPException(status_code=400, detail="Invalid Signal5 plan.")
+
+    selected_plan = plans[plan]
+
+    session = await asyncio.to_thread(
+        stripe.checkout.Session.create,
+        mode="subscription",
+        line_items=[
+            {
+                "price_data": {
+                    "currency": "usd",
+                    "unit_amount": selected_plan["amount"],
+                    "recurring": {"interval": "month"},
+                    "product_data": {
+                        "name": selected_plan["name"],
+                    },
+                },
+                "quantity": 1,
+            }
+        ],
+        success_url=f"{origin}/billing-success?session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{origin}/pricing.html",
+        metadata={
+            "product": "signal5",
+            "plan": plan,
+        },
+        subscription_data={
+            "metadata": {
+                "product": "signal5",
+                "plan": plan,
+            }
+        },
+    )
+
+    return {"url": session.url}
+
 
 @api.post("/billing/checkout")
 async def checkout(payload: CheckoutIn, request: Request, user: dict = Depends(get_current_user)) -> dict:
